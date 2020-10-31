@@ -1,0 +1,5 @@
+C:\DEV\C#\Commons\EPPlus_SimpleTable\EPPlus_SimpleTable\bin\Debug\netstandard2.0\EPPlus_SimpleTable.deps.json
+C:\DEV\C#\Commons\EPPlus_SimpleTable\EPPlus_SimpleTable\bin\Debug\netstandard2.0\EPPlus_SimpleTable.dll
+C:\DEV\C#\Commons\EPPlus_SimpleTable\EPPlus_SimpleTable\obj\Debug\netstandard2.0\EPPlus_SimpleTable.csprojAssemblyReference.cache
+C:\DEV\C#\Commons\EPPlus_SimpleTable\EPPlus_SimpleTable\obj\Debug\netstandard2.0\EPPlus_SimpleTable.AssemblyInfoInputs.cache
+C:\DEV\C#\Commons\EPPlus_SimpleTable\EPPlus_SimpleTable\obj\Debug\netstandard2.0\EPPlus_SimpleTable.AssemblyInfo.cs
