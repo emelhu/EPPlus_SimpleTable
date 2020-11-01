@@ -3,9 +3,16 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
+using System.Reflection;
 
 using OfficeOpenXml;                                                            // Install-Package EPPlus -Version 4.5.3.3      -- for excel; FREE (from version 5 it's commercial)
+using OfficeOpenXml.FormulaParsing.Utilities;
+using OfficeOpenXml.Style;
+
+
+// worksheet.Cells[2, 1, (szamlak.Count + 1), 1].Style.Numberformat.Format = "yyyy-MM-dd";
 
 namespace EPPlus.SimpleTable
 {
@@ -14,27 +21,30 @@ namespace EPPlus.SimpleTable
         public ExcelPackage     excel       { get; private set;}
         public ExcelWorksheet   worksheet   { get; private set;}
 
+        public int rowCount     => worksheet.Dimension?.End?.Row    ?? 0;
+        public int colCount     => worksheet.Dimension?.End?.Column ?? 0;
+
         public const string     extensionXLSX = ".XLSX";
         public const string     extensionXLS  = ".XLS";
 
         #region constructor
 
-        public SimpleExcelTable(string excelName, string worksheetName, bool writeHeaderLine = true, bool updateHeaderLine = false) :
-            this(GetExcelAndWorksheet(excelName, worksheetName), writeHeaderLine, updateHeaderLine)
+        public SimpleExcelTable(string excelName, string worksheetName, bool writeHeaderLine = true) :
+            this(GetExcelAndWorksheet(excelName, worksheetName), writeHeaderLine)
         {            
         }
 
-        public SimpleExcelTable(ExcelPackage excel, string worksheetName, bool writeHeaderLine = true, bool updateHeaderLine = false) :
-            this (excel, GetWorksheet(excel, worksheetName), writeHeaderLine, updateHeaderLine)
+        public SimpleExcelTable(ExcelPackage excel, string worksheetName, bool writeHeaderLine = true) :
+            this (excel, GetWorksheet(excel, worksheetName), writeHeaderLine)
         {            
         }
 
-        public SimpleExcelTable((ExcelPackage excel, ExcelWorksheet worksheet) excelAndWorksheet, bool writeHeaderLine = true, bool updateHeaderLine = false) :
-            this(excelAndWorksheet.excel, excelAndWorksheet.worksheet, writeHeaderLine, updateHeaderLine)
+        public SimpleExcelTable((ExcelPackage excel, ExcelWorksheet worksheet) excelAndWorksheet, bool writeHeaderLine = true) :
+            this(excelAndWorksheet.excel, excelAndWorksheet.worksheet, writeHeaderLine)
         {
         }
         
-        public SimpleExcelTable(ExcelPackage excel, ExcelWorksheet worksheet, bool writeHeaderLine = true, bool updateHeaderLine = false)
+        public SimpleExcelTable(ExcelPackage excel, ExcelWorksheet worksheet, bool writeHeaderLine = true)
         {
             if (! CheckEnum<T>())
             {
@@ -44,20 +54,13 @@ namespace EPPlus.SimpleTable
             this.excel     = excel;
             this.worksheet = worksheet;
 
-            int rowCount = worksheet.Dimension.End.Row;
-            int colCount = worksheet.Dimension.End.Column + 1;
-
-            if ((rowCount == 0) && (colCount == 0))
+            if (( worksheet.Dimension == null) || ((rowCount == 0) && (colCount == 0)))
             {   // Empty xls table
-                if (writeHeaderLine || updateHeaderLine)
+                if (writeHeaderLine)
                 {
-                    WriteHead(true);
+                    WriteHeaderFirstLine();
                 }
-            }
-            else if (writeHeaderLine)
-            {
-                WriteHead(updateHeaderLine);
-            }
+            }            
         }
         #endregion
 
@@ -132,13 +135,58 @@ namespace EPPlus.SimpleTable
 
         #region excel read/write
 
-        public void WriteHead(bool updateHeaderLine = false)
-        {
-            int rowCount = worksheet.Dimension.End.Row;
-            int colCount = worksheet.Dimension.End.Column + 1;
+        /// <summary>
+        /// Write header line into first line of excel table
+        /// </summary>
+        public void WriteHeaderFirstLine()
+        {          
+            var enumValues = Enum.GetValues(typeof(T));
+            int maxColumn  = 1;   
 
-            throw new NotImplementedException();
+            foreach (var enumValue in enumValues)
+            {
+                if (enumValue != null)
+                {
+                    var name = GetDisplayName((T)enumValue);
+
+                    worksheet.SetValue(1, (int)enumValue, name);
+
+                    if (maxColumn < (int)enumValue)
+                    {
+                        maxColumn = (int)enumValue;
+                    }
+                }
+            }
+
+            using (var range = worksheet.Cells[1, 1, 1, maxColumn])
+            {
+                range.Style.Font.Italic = true;
+                range.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                range.Style.Fill.BackgroundColor.SetColor(Color.LightGray);
+                range.Style.Font.Color.SetColor(Color.DarkBlue);
+            }
         }
+        #endregion
+
+        #region Helper functions
+
+        public string GetDisplayName(T enumValue)
+        {
+            string name = enumValue.ToString();
+
+            string? dispName = enumValue.GetType()?
+                 .GetMember(enumValue.ToString())?[0]?
+                 .GetCustomAttribute<DisplayAttribute>()?
+                 .Name;
+
+            if (dispName != null)
+            {
+                return dispName;
+            }
+
+            return name;
+        }
+
         #endregion
 
         #region IDisposable
@@ -171,39 +219,5 @@ namespace EPPlus.SimpleTable
         }
         #endregion
 
-        #region TEST & DEMO
-
-        [Conditional("DEBUG")]
-        public static void Test1()
-        { 
-            var filename = Path.ChangeExtension(Path.GetTempFileName(), extensionXLSX);
-
-            using var test = new SimpleExcelTable<TestAndDemoEnum>(filename, "Test1");
-
-
-            // TODO
-            // TODO
-
-            lastTestFilename = filename;
-        }
-
-        #if DEBUG
-
-        public static string? lastTestFilename { get; private set; }
-
-        /// <summary>
-        /// List of HEAD columns for 'Test & Demo'
-        /// Values must starts from one and increments by one; because enum value can index column of worksheet table as EPPlus's worksheet.Cells[] do it.
-        /// </summary>
-        public enum TestAndDemoEnum
-        {
-            FIRST = 1,
-            Second,
-            [Display(Name = "Third column")]
-            THIRD
-        }
-        #endif
-
-#endregion
     }
 }
