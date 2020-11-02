@@ -6,3 +6,4 @@ C:\DEV\C#\Commons\EPPlus_SimpleTable\EPPlus_SimpleTable\obj\Debug\netstandard2.0
 C:\DEV\C#\Commons\EPPlus_SimpleTable\EPPlus_SimpleTable\obj\Debug\netstandard2.0\EPPlus.SimpleTable.csproj.CoreCompileInputs.cache
 C:\DEV\C#\Commons\EPPlus_SimpleTable\EPPlus_SimpleTable\obj\Debug\netstandard2.0\EPPlus.SimpleTable.dll
 C:\DEV\C#\Commons\EPPlus_SimpleTable\EPPlus_SimpleTable\obj\Debug\netstandard2.0\EPPlus.SimpleTable.pdb
+C:\DEV\C#\Commons\EPPlus_SimpleTable\EPPlus_SimpleTable\obj\Debug\netstandard2.0\EPPlus.SimpleTable.csprojAssemblyReference.cache
