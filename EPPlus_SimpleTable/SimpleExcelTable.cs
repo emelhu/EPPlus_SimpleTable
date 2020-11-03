@@ -45,6 +45,9 @@ namespace EPPlus.SimpleTable
         /// </summary>
         public        Dictionary<Type, string> numberFormatsForTypes        { get; private set; }
 
+        public static Appropriateness   defaultAppropriatenessDefault   = Appropriateness.None;
+        public        Appropriateness   defaultAppropriateness          = defaultAppropriatenessDefault;
+
         #region constructor
 
         static SimpleExcelTable()
@@ -197,20 +200,25 @@ namespace EPPlus.SimpleTable
                 range.Style.Fill.PatternType = ExcelFillStyle.Solid;
                 range.Style.Fill.BackgroundColor.SetColor(Color.LightGray);
                 range.Style.Font.Color.SetColor(Color.DarkBlue);
+
+                range.Style.Numberformat.Format = "@";
+                range.Style.VerticalAlignment   = ExcelVerticalAlignment.Center;
+                range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                range.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Blue);
             }
         }
         #endregion
 
         #region indexer
 
-        public object this[int row, T col, Appropriateness checkAppropriateness = Appropriateness.None]
+        public object this[int row, T col, Appropriateness checkAppropriateness = Appropriateness.Default]
         {
             get { return worksheet.GetValue(row, Convert.ToInt32(col)); }
             set { CheckAppropriateness(col, value, checkAppropriateness);
                   worksheet.SetValue(row, Convert.ToInt32(col), value); }
         }
 
-        public object this[int row, T col, string styleNumberFormat, Appropriateness checkAppropriateness = Appropriateness.None]
+        public object this[int row, T col, string styleNumberFormat, Appropriateness checkAppropriateness = Appropriateness.Default]
         {
             get { return worksheet.GetValue(row, Convert.ToInt32(col)); }
             set { CheckAppropriateness(col, value, checkAppropriateness);
@@ -218,7 +226,7 @@ namespace EPPlus.SimpleTable
                   worksheet.Cells[row, Convert.ToInt32(col)].Style.Numberformat.Format = styleNumberFormat;}
         }
 
-        public object this[int row, T col, int styleNumberFormatId, Appropriateness checkAppropriateness = Appropriateness.None]
+        public object this[int row, T col, int styleNumberFormatId, Appropriateness checkAppropriateness = Appropriateness.Default]
         {
             get { return worksheet.GetValue(row, Convert.ToInt32(col)); }
             set { CheckAppropriateness(col, value, checkAppropriateness);
@@ -226,7 +234,7 @@ namespace EPPlus.SimpleTable
                   worksheet.Cells[row, Convert.ToInt32(col)].Style.Numberformat.Format = GetNumberformat(styleNumberFormatId) ?? "General";}
         }
 
-        public object this[int row, T col, bool uniformFormat, Appropriateness checkAppropriateness = Appropriateness.None]
+        public object this[int row, T col, bool uniformFormat, Appropriateness checkAppropriateness = Appropriateness.Default]
         {
             get { return worksheet.GetValue(row, Convert.ToInt32(col)); }
 
@@ -249,10 +257,11 @@ namespace EPPlus.SimpleTable
             }
         }
 
-        public object this[int row, T col, Type setNumberFormatByType]
+        public object this[int row, T col, Type setNumberFormatByType, Appropriateness checkAppropriateness = Appropriateness.Default]
         {
             get { return worksheet.GetValue(row, Convert.ToInt32(col)); }
-            set { worksheet.SetValue(row, Convert.ToInt32(col), value); 
+            set { CheckAppropriateness(col, value, checkAppropriateness);
+                  worksheet.SetValue(row, Convert.ToInt32(col), value); 
                   worksheet.Cells[row, Convert.ToInt32(col)].Style.Numberformat.Format = GetNumberformat(setNumberFormatByType) ?? "General";}
         }
 
@@ -287,7 +296,7 @@ namespace EPPlus.SimpleTable
             return type;
         }
 
-        public (Type? type, object? min, object? max)? GetColumnCheckData(T enumValue)
+        public (Type? type, object? min, object? max, int? minLen, int? maxLen)? GetColumnCheckData(T enumValue)
         {
             var attr = enumValue.GetType()?
                   .GetMember(enumValue.ToString())?[0]?
@@ -295,7 +304,7 @@ namespace EPPlus.SimpleTable
 
             if (attr != null)
             { 
-                return (attr.columnType, attr.min, attr.max);
+                return (attr.columnType, attr.min, attr.max, attr.minLen, attr.maxLen);
             }
 
             return null;
@@ -321,13 +330,19 @@ namespace EPPlus.SimpleTable
 
         public void CheckAppropriateness(T col, object storeValue, Appropriateness checkAppropriateness)
         {
+            if (checkAppropriateness == Appropriateness.Default)
+            {
+                checkAppropriateness = defaultAppropriateness;
+            }
+            
+
             if (checkAppropriateness != Appropriateness.None)
             {
                 var checkData = GetColumnCheckData(col);
 
                 if (checkData != null)
                 {
-                    if ((checkAppropriateness & Appropriateness.Type) != 0)
+                    if ((checkAppropriateness & Appropriateness.Type) != 0)                                                             // you want type check
                     {
                         if ((checkData.Value.type != null) && (checkData.Value.type != storeValue.GetType()))
                         {
@@ -335,18 +350,56 @@ namespace EPPlus.SimpleTable
                         }                   
                     }
 
-                    if ((checkAppropriateness & Appropriateness.Interval) != 0)
+                    if ((checkAppropriateness & Appropriateness.Interval) != 0)                                                         // you want interval check
                     {
                         if (checkData.Value.min != null) 
                         {
-                            throw new NotImplementedException("checkAppropriateness / checkData.Value.min");
-                            //throw new Exception($"The type of value for store to excel worksheet's column '{col.ToString()}' is not identical then defined by enum! [{checkData.Value.type.Name} vs. {storeValue.GetType().Name}]");
+                            if (checkData.Value.min.GetType() != storeValue.GetType()) 
+                            {
+                                throw new Exception($"The type of value for store to excel worksheet's column '{col.ToString()}' is not identical then defined 'min' value! [{checkData.Value.min.GetType().Name} vs. {storeValue.GetType().Name}]");
+                            }
+
+                            var comparable = (IComparable)checkData.Value.min as IComparable;
+
+                            if (comparable.CompareTo(storeValue) < 0) 
+                            {
+                                throw new Exception($"The value for store to excel worksheet's column '{col.ToString()}' is less then defined 'min' value! [{checkData.Value.min.ToString()} vs. {storeValue.ToString()}]");
+                            }
                         }
 
                         if (checkData.Value.max != null) 
                         {
-                            throw new NotImplementedException("checkAppropriateness / checkData.Value.max");
-                            //throw new Exception($"The type of value for store to excel worksheet's column '{col.ToString()}' is not identical then defined by enum! [{checkData.Value.type.Name} vs. {storeValue.GetType().Name}]");
+                            if (checkData.Value.max.GetType() != storeValue.GetType()) 
+                            {
+                                throw new Exception($"The type of value for store to excel worksheet's column '{col.ToString()}' is not identical then defined 'max' value! [{checkData.Value.max.GetType().Name} vs. {storeValue.GetType().Name}]");
+                            }
+
+                            var comparable = (IComparable)checkData.Value.max as IComparable;
+
+                            if (comparable.CompareTo(storeValue) > 0) 
+                            {
+                                throw new Exception($"The value for store to excel worksheet's column '{col.ToString()}' is more then defined 'max' value! [{checkData.Value.max.ToString()} vs. {storeValue.ToString()}]");
+                            }
+                        }
+
+                        if (checkData.Value.minLen != null)
+                        {
+                            var len = storeValue.ToString().Length;
+
+                            if (len < checkData.Value.minLen) 
+                            {
+                                throw new Exception($"The length of value for store to excel worksheet's column '{col.ToString()}' is shorter then defined 'minLen' value! [{checkData.Value.minLen} > {len}] [{storeValue.ToString()}]");
+                            }
+                        }
+
+                        if (checkData.Value.maxLen != null)
+                        {
+                            var len = storeValue.ToString().Length;
+
+                            if (len > checkData.Value.maxLen) 
+                            {
+                                throw new Exception($"The length of value for store to excel worksheet's column '{col.ToString()}' is longer then defined 'maxLen' value! [{checkData.Value.maxLen} < {len}] [{storeValue.ToString()}]");
+                            }
                         }
                     }
                 }

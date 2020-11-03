@@ -11,8 +11,10 @@ namespace EPPlus.SimpleTable
         public Type?    columnType;
         public object?  min;
         public object?  max;
+        public int?     minLen;
+        public int?     maxLen;
 
-        public ColumnTypeAttribute(Type? columnType, object? min = null, object? max = null) 
+        public ColumnTypeAttribute(Type? columnType, object? min = null, object? max = null, int? minLen = null, int? maxLen = null) 
         {
             if (columnType == null)
             {
@@ -32,11 +34,6 @@ namespace EPPlus.SimpleTable
                     {
                         throw new Exception($"ColumnTypeAttribute: No identical type for 'min' and 'column'! [{min.GetType().Name} vs. {columnType.Name}]");
                     }
-
-                    if ((min as IComparable) == null)
-                    {
-                        throw new Exception($"ColumnTypeAttribute: The type of 'min' isn't comparable! [{min.GetType().Name}]");
-                    }
                 }
 
                 if (max != null)
@@ -45,11 +42,53 @@ namespace EPPlus.SimpleTable
                     {
                         throw new Exception($"ColumnTypeAttribute: No identical type for 'max' and 'column'! [{max.GetType().Name} vs. {columnType.Name}]");
                     }
+                }
+            }
 
-                    if ((max as IComparable) == null)
-                    {
-                        throw new Exception($"ColumnTypeAttribute: The type of 'max' isn't comparable! [{max.GetType().Name}]");
-                    }
+            if ((min != null) && ((min as IComparable) == null))
+            {
+                throw new Exception($"ColumnTypeAttribute: The type of 'min' isn't comparable! [{min.GetType().Name}]");
+            }
+
+            if ((max != null) && ((max as IComparable) == null))
+            {
+                throw new Exception($"ColumnTypeAttribute: The type of 'max' isn't comparable! [{max.GetType().Name}]");
+            }
+
+
+            const int stringLimit = 32767;                                                                                              // https://support.microsoft.com/en-us/office/excel-specifications-and-limits-1672b34d-7043-467e-8e27-269d656771c3?ocmsassetid=hp010073849&correlationid=bbfa300d-224f-47a5-bf71-7f71b9ae0761&ui=en-us&rs=en-us&ad=us
+
+            if (minLen != null)
+            {
+                if (minLen < 0)
+                {
+                    throw new Exception($"ColumnTypeAttribute: 'minLen' less then zero! [{minLen}]");
+                }
+
+                if (minLen > stringLimit)                                                                                                                 
+                {
+                    throw new Exception($"ColumnTypeAttribute: 'minLen' more then limit! [{minLen}/{stringLimit}]");
+                }
+            }
+
+            if (maxLen != null)
+            {
+                if (maxLen < 0)
+                {
+                    throw new Exception($"ColumnTypeAttribute: 'maxLen' less then zero! [{maxLen}]");
+                }
+
+                if (maxLen > stringLimit)                                                                                                                 
+                {
+                    throw new Exception($"ColumnTypeAttribute: 'maxLen' more then limit! [{maxLen}/{stringLimit}]");
+                }
+            }
+
+            if ((minLen != null) && (maxLen != null))
+            {
+                if (minLen > maxLen)
+                {
+                    throw new Exception($"ColumnTypeAttribute: 'minLen' more then 'maxLen'! [{minLen}/{maxLen}]");
                 }
             }
 
@@ -57,6 +96,8 @@ namespace EPPlus.SimpleTable
             this.columnType = columnType; 
             this.min        = min; 
             this.max        = max; 
+            this.minLen     = minLen; 
+            this.maxLen     = maxLen; 
         }
     }
 
@@ -76,7 +117,8 @@ namespace EPPlus.SimpleTable
         Type                = 1 << 0,   // 1
         Interval            = 1 << 1,   // 2
         TypeAndInterval     = Type | Interval,
-        All                 = TypeAndInterval
+        All                 = TypeAndInterval,
+        Default             = -1
     }
 
     // 1 << 2,   // 4

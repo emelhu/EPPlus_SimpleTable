@@ -21,12 +21,22 @@ namespace Test
 
             DispResult(filename);
 
-            DispBuiltInNumberFormats(filename);
+            //DispBuiltInNumberFormats(filename);
         }
 
         public static void Test1(string filename)
         {             
-            using var test = new SimpleExcelTable<TestAndDemoEnum>(filename, worksheetName);            
+            using var test = new SimpleExcelTable<TestAndDemoEnum>(filename, worksheetName);    
+            
+            test[2, TestAndDemoEnum.FIRST]  = "TestText";
+            test[2, TestAndDemoEnum.Second] = "TestText";
+            test[2, TestAndDemoEnum.THIRD]  = "TestText";
+            test[2, TestAndDemoEnum.fourth] = "TestText";
+
+            test[3, TestAndDemoEnum.FIRST, Appropriateness.All]  = 10;
+            test[3, TestAndDemoEnum.Second, Appropriateness.All] = "TestText";
+            test[3, TestAndDemoEnum.THIRD, Appropriateness.All]  = "TestText";
+            test[3, TestAndDemoEnum.fourth, Appropriateness.All] = 1000.00;
         }
 
         public static void DispResult(string filename)
@@ -62,9 +72,10 @@ namespace Test
             FIRST = 1,
             Second,
             [Display(Name = "Third column")]
+            [ColumnType(typeof(string))]         
             THIRD,
             [Display(Name = "Fourth column")]
-            [ColumnType(typeof(double), 1.0, 1000)]                                                 // !ERR! --> 1000.0
+            [ColumnType(typeof(double))]                                                                // Test case: [ColumnType(typeof(double), 1.0, 1000.0)] not tested ; Test case: 1000.0 vs 1000 tested
             [ColumnNumberformat("#,##0.0000 thousand")]
             fourth
         }
