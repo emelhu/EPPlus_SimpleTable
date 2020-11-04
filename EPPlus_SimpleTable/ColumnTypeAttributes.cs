@@ -14,8 +14,27 @@ namespace EPPlus.SimpleTable
         public int?     minLen;
         public int?     maxLen;
 
-        public ColumnTypeAttribute(Type? columnType, object? min = null, object? max = null, int? minLen = null, int? maxLen = null) 
+        private const int NullIntReplacement = int.MinValue;
+
+        public ColumnTypeAttribute(Type? columnType, object? min = null, object? max = null, int minLen = NullIntReplacement, int maxLen = NullIntReplacement) 
         {
+            this.columnType = columnType; 
+            this.min        = min; 
+            this.max        = max; 
+            this.minLen     = minLen; 
+            this.maxLen     = maxLen; 
+
+            if (minLen == NullIntReplacement)
+            {
+                this.minLen = null;
+            }
+
+            if (maxLen == NullIntReplacement)
+            {
+                this.maxLen = null;
+            }
+
+
             if (columnType == null)
             {
                 if ((min != null) && (max != null))
@@ -58,7 +77,7 @@ namespace EPPlus.SimpleTable
 
             const int stringLimit = 32767;                                                                                              // https://support.microsoft.com/en-us/office/excel-specifications-and-limits-1672b34d-7043-467e-8e27-269d656771c3?ocmsassetid=hp010073849&correlationid=bbfa300d-224f-47a5-bf71-7f71b9ae0761&ui=en-us&rs=en-us&ad=us
 
-            if (minLen != null)
+            if (this.minLen != null)
             {
                 if (minLen < 0)
                 {
@@ -71,7 +90,7 @@ namespace EPPlus.SimpleTable
                 }
             }
 
-            if (maxLen != null)
+            if (this.maxLen != null)
             {
                 if (maxLen < 0)
                 {
@@ -84,20 +103,13 @@ namespace EPPlus.SimpleTable
                 }
             }
 
-            if ((minLen != null) && (maxLen != null))
+            if ((this.minLen != null) && (this.maxLen != null))
             {
                 if (minLen > maxLen)
                 {
                     throw new Exception($"ColumnTypeAttribute: 'minLen' more then 'maxLen'! [{minLen}/{maxLen}]");
                 }
-            }
-
-
-            this.columnType = columnType; 
-            this.min        = min; 
-            this.max        = max; 
-            this.minLen     = minLen; 
-            this.maxLen     = maxLen; 
+            }            
         }
     }
 

@@ -37,6 +37,11 @@ namespace Test
             test[3, TestAndDemoEnum.Second, Appropriateness.All] = "TestText";
             test[3, TestAndDemoEnum.THIRD, Appropriateness.All]  = "TestText";
             test[3, TestAndDemoEnum.fourth, Appropriateness.All] = 1000.00;
+
+            test[3, TestAndDemoEnum.FIRST, Appropriateness.All]  = 10;
+            test[3, TestAndDemoEnum.Second, Appropriateness.All] = "TestText";
+            test[3, TestAndDemoEnum.THIRD, Appropriateness.All]  = "T";
+            test[3, TestAndDemoEnum.fourth, Appropriateness.All] = 10000.00;
         }
 
         public static void DispResult(string filename)
@@ -72,10 +77,10 @@ namespace Test
             FIRST = 1,
             Second,
             [Display(Name = "Third column")]
-            [ColumnType(typeof(string))]         
+            [ColumnType(typeof(string), minLen : 2, maxLen : 8)]         
             THIRD,
             [Display(Name = "Fourth column")]
-            [ColumnType(typeof(double))]                                                                // Test case: [ColumnType(typeof(double), 1.0, 1000.0)] not tested ; Test case: 1000.0 vs 1000 tested
+            [ColumnType(typeof(double), 1.0, 1000.0)]                                                             // Test case: [ColumnType(typeof(double), 1.0, 1000.0)] not tested ; Test case: 1000.0 vs 1000 tested
             [ColumnNumberformat("#,##0.0000 thousand")]
             fourth
         }
