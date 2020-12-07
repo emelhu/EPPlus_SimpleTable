@@ -31,8 +31,9 @@ namespace EPPlus.SimpleTable
         public IEnumerable<string>                      workbookNumberformats       => excel.Workbook.Styles.NumberFormats.Select(i => i.Format);
         public IEnumerable<(int id, string format)>     workbookNumberformatsWithId => excel.Workbook.Styles.NumberFormats.Select(i => (i.NumFmtId, i.Format));
 
-        public const string     extensionXLSX = ".XLSX";
-        public const string     extensionXLS  = ".XLS";
+        public const string     extensionXLSX        = ".XLSX";
+        public const string     extensionXLS         = ".XLS";
+        public const string     defaultWorksheetName = "Default";
 
         /// <summary>
         /// Default values for set 'worksheet.Cells[].Style.Numberformat.Format' automatically.
@@ -61,12 +62,12 @@ namespace EPPlus.SimpleTable
             numberFormatsForTypesDefault.Add(typeof(string),    "@");            
         }
 
-        public SimpleExcelTable(string excelName, string worksheetName, bool writeUniformFormatting = true, params object[]? columnFormats) :
+        public SimpleExcelTable(string excelName, string? worksheetName, bool writeUniformFormatting = true, params object[]? columnFormats) :
             this(GetExcelAndWorksheet(excelName, worksheetName), writeUniformFormatting, columnFormats)
         {            
         }
 
-        public SimpleExcelTable(ExcelPackage excel, string worksheetName, bool writeUniformFormatting = true, params object[]? columnFormats) :
+        public SimpleExcelTable(ExcelPackage excel, string? worksheetName, bool writeUniformFormatting = true, params object[]? columnFormats) :
             this (excel, GetWorksheet(excel, worksheetName), writeUniformFormatting, columnFormats)
         {            
         }
@@ -101,14 +102,23 @@ namespace EPPlus.SimpleTable
         #endregion
 
         #region constructor helper
-        public static ExcelWorksheet GetWorksheet(ExcelPackage excel, string worksheetName)
+        public static ExcelWorksheet GetWorksheet(ExcelPackage excel, string? worksheetName)
         {
+            var worksheets = excel.Workbook.Worksheets.ToArray();
+
             if (String.IsNullOrWhiteSpace(worksheetName))
             {
-                worksheetName = "SimpleExcelTableDefault";
+                if (worksheets.Length == 0)
+                {
+                    worksheetName = defaultWorksheetName; 
+                }
+                else
+                {
+                    return worksheets[0];
+                }              
             }
 
-            foreach (var worksheet in excel.Workbook.Worksheets)
+            foreach (var worksheet in worksheets)
             {
                 if (worksheet.Name == worksheetName)
                 {
@@ -119,7 +129,7 @@ namespace EPPlus.SimpleTable
             return excel.Workbook.Worksheets.Add(worksheetName);
         }
 
-        public static (ExcelPackage excel, ExcelWorksheet worksheet) GetExcelAndWorksheet(string excelName, string worksheetName)
+        public static (ExcelPackage excel, ExcelWorksheet worksheet) GetExcelAndWorksheet(string excelName, string? worksheetName)
         {
             // TODO
 
