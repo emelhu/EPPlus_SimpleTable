@@ -25,8 +25,12 @@ namespace EPPlus.SimpleTable
         public ExcelPackage     excel       { get; private set;}
         public ExcelWorksheet   worksheet   { get; private set;}
 
+        public bool             writeAtDispose = true;
+
         public int rowCount     => worksheet.Dimension?.End?.Row    ?? 0;
         public int colCount     => worksheet.Dimension?.End?.Column ?? 0;
+
+        public bool hasHeaderRow    => HasHeaderRow();        
 
         public IEnumerable<string>                      workbookNumberformats       => excel.Workbook.Styles.NumberFormats.Select(i => i.Format);
         public IEnumerable<(int id, string format)>     workbookNumberformatsWithId => excel.Workbook.Styles.NumberFormats.Select(i => (i.NumFmtId, i.Format));
@@ -64,17 +68,20 @@ namespace EPPlus.SimpleTable
 
         public SimpleExcelTable(string excelName, string? worksheetName, bool writeUniformFormatting = true, params object[]? columnFormats) :
             this(GetExcelAndWorksheet(excelName, worksheetName), writeUniformFormatting, columnFormats)
-        {            
+        {    
+            writeAtDispose = true;
         }
 
         public SimpleExcelTable(ExcelPackage excel, string? worksheetName, bool writeUniformFormatting = true, params object[]? columnFormats) :
             this (excel, GetWorksheet(excel, worksheetName), writeUniformFormatting, columnFormats)
-        {            
+        {   
+            writeAtDispose = false;
         }
 
         public SimpleExcelTable((ExcelPackage excel, ExcelWorksheet worksheet) excelAndWorksheet, bool writeUniformFormatting = true, params object[]? columnFormats) :
             this(excelAndWorksheet.excel, excelAndWorksheet.worksheet, writeUniformFormatting, columnFormats)
         {
+            writeAtDispose = false;
         }
         
         public SimpleExcelTable(ExcelPackage excel, ExcelWorksheet worksheet, bool writeUniformFormatting = true, params object[]? columnFormats)
@@ -215,6 +222,52 @@ namespace EPPlus.SimpleTable
                 range.Style.VerticalAlignment   = ExcelVerticalAlignment.Center;
                 range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 range.Style.Border.BorderAround(ExcelBorderStyle.Thin, Color.Blue);
+            }
+        }
+
+        /// <summary>
+        /// Check first row is it a header row?
+        /// </summary>
+        /// <returns>True if first row is a header row.</returns>
+        private bool HasHeaderRow()
+        {
+            if (rowCount < 1)
+            {
+                return false;
+            }
+
+            var names = Enum.GetNames(typeof(T));
+
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (! IsSameName(names[i], (string)worksheet.GetValue(1, i + 1)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public static bool lazyHeaderCheck            = false;
+        public static bool caseInsensitiveHeaderCheck = true;
+
+        private static bool IsSameName(string name1, string name2)
+        {
+            if (lazyHeaderCheck)
+            {
+                throw new NotImplementedException();                                                                                    // TODO
+            }
+            else
+            {
+                if (caseInsensitiveHeaderCheck)
+                {
+                    return (String.Compare(name1, name2, true, CultureInfo.InvariantCulture) == 0);
+                }
+                else
+                {
+                    return (String.CompareOrdinal(name1, name2) == 0);
+                }
             }
         }
         #endregion
@@ -430,7 +483,10 @@ namespace EPPlus.SimpleTable
                 {                    
                 }
 
-                excel.Save();    
+                if (writeAtDispose)
+                {
+                    excel.Save();
+                }
 
                 disposedValue = true;
             }
